@@ -16,8 +16,7 @@ class DatabaseDataService():
         self.conn = psycopg2.connect(database=config["db_name"],
                         host=config["db_host"],
                         user=config["db_user"],
-                        password=config["db_pass"],
-                        port=config["db_port"])
+                        password=config["db_pass"])
         self.conn.autocommit = True
         self.cursor = self.conn.cursor()
 

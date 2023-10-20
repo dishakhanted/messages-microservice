@@ -36,13 +36,9 @@ def get_data_service():
 
     database = {
         "db_name" : "message",
-        "db_users" : "messageUsers",
-        "db_messages" : "messages",
-        "db_threads" : "messageThreads",
-        "db_host" : "localhost",
+        "db_host" : '/cloudsql/{}'.format("messages-microservice:us-east1:message-db"),
         "db_user" : "message",
         "db_pass" : "message",
-        "db_port" : "5432"
     }
 
     ds = UserDataService(database)
