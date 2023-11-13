@@ -1,5 +1,4 @@
 runtime: python
-env: flex
 entrypoint: gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app
 instance_class: F1
 
