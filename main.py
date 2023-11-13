@@ -126,7 +126,6 @@ async def get_student(userID: int):
 @app.post("/api/users/newUser")
 def add_users(request: UserModel):
     
-    print(request)
     result = None
     result = user_resource.add_user(request)
     if len(result) == 1:
@@ -155,22 +154,21 @@ async def get_messages(userID: int):
 
     return result
 
-@app.get("/api/messages/{userID}/{messageID}", response_model=Union[List[MessageRspModel], MessageRspModel, None])
-async def get_messages(userID: int, messageID: int):
+@app.get("/api/messages/{userID}/{messageThreadID}", response_model=Union[List[MessageRspModel], MessageRspModel, None])
+async def get_messages(userID: int, messageThreadID: int):
     """
     Return messages based on userID and message Thread ID.
 
     - **userID**: User's userID
-    - **messageID**: ThreadID
+    - **messageThreadID**: ThreadID
     """
-    result = message_resource.get_messages(userID, messageID)
+    result = message_resource.get_messages(userID, messageThreadID)
 
     return result
 
 @app.post("/api/messages/newMessage")
 def new_message(request: MessageModel):
     
-    print(request)
     result = None
     result = message_resource.add_message(request)
     if len(result) == 1:
@@ -179,6 +177,31 @@ def new_message(request: MessageModel):
         raise HTTPException(status_code=404, detail="Not found")
     
     return result
+
+@app.put("/api/messages/newMessage")
+def new_message(request: MessageModel):
+    
+    result = None
+    result = message_resource.put_message(request)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return result
+
+@app.delete("/api/messages/newMessage")
+def new_message(request: MessageModel):
+    
+    result = None
+    result = message_resource.delete_message(request)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return result
+
 
 
 if __name__ == "__main__":
