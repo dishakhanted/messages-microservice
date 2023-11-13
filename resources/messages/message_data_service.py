@@ -96,7 +96,7 @@ class MessageDataService(BaseDataService):
         """
         check_thread = f"""INSERT INTO "messageThread" ("messageID", "creationDT") VALUES ('{request.messageID}', CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING"""
         self.database.execute_query(check_thread)
-        query = f"""INSERT INTO "userMessages"("userMessageID", "userID", "messageID", "messageContents", "creationDT") VALUES ('{request.userMessageID}', '{request.userID}', '{request.messageID}' , '{request.messageContents}', CURRENT_TIMESTAMP) ON CONFLICT ("userMessageID") DO UPDATE SET messageContents='{request.messageContents}', creationDT='CURRENT_TIMESTAMP' RETURNING "messageID";"""
+        query = f"""INSERT INTO "userMessages"("userMessageID", "userID", "messageID", "messageContents", "creationDT") VALUES ('{request.userMessageID}', '{request.userID}', '{request.messageID}' , '{request.messageContents}', CURRENT_TIMESTAMP) ON CONFLICT ("userMessageID") DO UPDATE SET "messageContents"='{request.messageContents}', "creationDT"='CURRENT_TIMESTAMP' RETURNING "messageID";"""
         users = self.database.execute_query(query)
         result = users.fetchone()
 
@@ -109,7 +109,7 @@ class MessageDataService(BaseDataService):
 
         :param request: DELETE request with message ID.
         """
-        query = f"""DELETE FROM "userMessages" WHERE userMessageID = '{request.userMessageID}' RETURNING "messageID";"""
+        query = f"""DELETE FROM "userMessages" WHERE "userMessageID" = '{request.userMessageID}' RETURNING "messageID";"""
         users = self.database.execute_query(query)
         result = users.fetchone()
 
