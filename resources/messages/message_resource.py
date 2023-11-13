@@ -45,4 +45,17 @@ class MessageResource(BaseResource):
         result = self.data_service.add_message(request)
 
         return result
+    
+    def put_message(self, request: MessageModel) -> List[MessageRspModel]:
+
+        result = self.data_service.put_message(request)
+
+        return result
+
+    def delete_message(self, request: MessageModel) -> List[MessageRspModel]:
+
+        result = self.data_service.delete_message(request)
+
+        return result
+
 

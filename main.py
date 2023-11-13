@@ -14,8 +14,7 @@ import uvicorn
 
 from resources.database.database_data_service import DatabaseDataService
 from resources.messages.message_data_service import MessageDataService
-from resources.messages.message_resource import MessageResource
-from resources.messages.message_resource import MessageRspModel, MessageModel
+from resources.messages.message_resource import MessageRspModel, MessageModel, MessageResource
 from resources.users.users_data_service import UserDataService
 from resources.users.users_resource import UserResource
 from resources.users.users_models import UserRspModel, UserModel
