@@ -1,7 +1,3 @@
-runtime: python
-env: standard
+runtime: python312
 entrypoint: gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app
 instance_class: F1
-
-runtime_config:
-    operating_system: "ubuntu22"
