@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Messages Microservices</title>
+</head>
+<body>
+<h1>Messages Microservices</h1>
+<p>{{result}}</p>
+{% if userID > 0 %}
+<a href="/profile/{{userID-1}}">Previous User</a>
+{% endif %}
+<a href="/profile/{{userID+1}}">Next User</a>
+</body>
+</html>

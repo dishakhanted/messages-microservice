@@ -2,8 +2,10 @@
 # FastAPI is a framework and library for implementing REST web services in Python.
 # https://fastapi.tiangolo.com/
 #
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 
 from fastapi.staticfiles import StaticFiles
 from typing import List, Union
@@ -24,6 +26,7 @@ from pydantic import BaseModel
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
 # ******************************
@@ -97,6 +100,16 @@ async def api():
     """
     return RedirectResponse("/docs")
 
+@app.get("/profile/{userID}", response_class=HTMLResponse)
+async def profile(request: Request, userID: int):
+    result = user_resource.get_users(userID)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return templates.TemplateResponse("profile.html", {"request": request, "userID": userID, "result": result})
+
 @app.get("/api/users", response_model=List[UserRspModel])
 async def get_users():
     """
@@ -112,7 +125,6 @@ async def get_student(userID: int):
 
     - **userID**: User's userID
     """
-    result = None
     result = user_resource.get_users(userID)
     if len(result) == 1:
         result = result[0]
@@ -125,7 +137,6 @@ async def get_student(userID: int):
 @app.post("/api/users/newUser")
 def add_users(request: UserModel):
     
-    result = None
     result = user_resource.add_user(request)
     if len(result) == 1:
         result = result[0]
