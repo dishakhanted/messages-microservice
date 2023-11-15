@@ -111,11 +111,11 @@ async def profile(request: Request, userID: int):
     return templates.TemplateResponse("profile.html", {"request": request, "userID": userID, "result": result})
 
 @app.get("/api/users", response_model=List[UserRspModel])
-async def get_users():
+async def get_users(userID: int | None = None, firstName: str = None, lastName: str = None, isAdmin: bool = None):
     """
     Return all users.
     """
-    result = user_resource.get_users(userID=None)
+    result = user_resource.get_users(userID, firstName, lastName, isAdmin)
     return result
 
 @app.get("/api/users/{userID}", response_model=Union[List[UserRspModel], UserRspModel, None])
@@ -125,7 +125,7 @@ async def get_student(userID: int):
 
     - **userID**: User's userID
     """
-    result = user_resource.get_users(userID)
+    result = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None)
     if len(result) == 1:
         result = result[0]
     else:

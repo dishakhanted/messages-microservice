@@ -29,9 +29,9 @@ class UserResource(BaseResource):
         rsp = UserRspModel(**s, links=links)
         return rsp
 
-    def get_users(self, userID: int) -> List[UserRspModel]:
+    def get_users(self, userID: int, firstName: str, lastName: str, isAdmin: bool) -> List[UserRspModel]:
 
-        result = self.data_service.get_users(userID)
+        result = self.data_service.get_users(userID, firstName, lastName, isAdmin)
         final_result = []
 
         for s in result:
