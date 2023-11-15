@@ -59,11 +59,11 @@ class UserDataService(BaseDataService):
             if (userID != None):
                 query += ' AND "userID"='+str(userID)
             if (firstName != None):
-                query += ' AND "firstName"='+str(userID)
+                query += ' AND "firstName" LIKE '+str(userID)
             if (lastName != None):
-                query += ' AND "lastName"='+str(userID)
+                query += ' AND "lastName" LIKE '+str(userID)
             if (isAdmin != None):
-                query += ' AND "isAdmin"='+str(userID)
+                query += ' AND "isAdmin" LIKE '+str(userID)
             query += ';'
         
         users = self.database.fetchallquery(query)
