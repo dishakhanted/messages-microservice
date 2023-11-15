@@ -111,7 +111,7 @@ async def profile(request: Request, userID: int):
     return templates.TemplateResponse("profile.html", {"request": request, "userID": userID, "result": result})
 
 @app.get("/api/users", response_model=List[UserRspModel])
-async def get_users(userID: int | None = None, firstName: str = None, lastName: str = None, isAdmin: bool = None):
+async def get_users(userID: int | None = None, firstName: str | None = None, lastName: str | None = None, isAdmin: bool | None = None):
     """
     Return all users.
     """
