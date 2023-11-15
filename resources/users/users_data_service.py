@@ -59,9 +59,9 @@ class UserDataService(BaseDataService):
             if (userID != None):
                 query += ' AND "userID"='+str(userID)
             if (firstName != None):
-                query += ' AND "firstName"='+str(firstName)
+                query += ' AND "firstName"="'+str(firstName)+'"'
             if (lastName != None):
-                query += ' AND "lastName"='+str(lastName)
+                query += ' AND "lastName"="'+str(lastName)+'"'
             if (isAdmin != None):
                 query += ' AND "isAdmin"='+str(isAdmin)
             query += ';'
