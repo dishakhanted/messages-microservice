@@ -51,20 +51,20 @@ class UserDataService(BaseDataService):
         """
         result = []
         users = {}
-        query = 'SELECT * FROM "messageUsers"'
+        query = """SELECT * FROM "messageUsers" """
         if (userID == None and firstName == None and lastName == None and isAdmin == None):
-            query += ';'
+            query += """;"""
         else:
-            query += ' WHERE 1=1'
+            query += """ WHERE 1=1"""
             if (userID != None):
-                query += ' AND "userID"='+str(userID)
+                query += """ AND "userID"="""+str(userID)
             if (firstName != None):
-                query += ' AND "firstName"="'+str(firstName)+'"'
+                query += """ AND "firstName"='"""+str(firstName)+"""'"""
             if (lastName != None):
-                query += ' AND "lastName"="'+str(lastName)+'"'
+                query += """ AND "lastName"='"""+str(lastName)+"""'"""
             if (isAdmin != None):
-                query += ' AND "isAdmin"='+str(isAdmin)
-            query += ';'
+                query += """ AND "isAdmin"="""+str(isAdmin)
+            query += """;"""
         
         users = self.database.fetchallquery(query)
         for s in users:
