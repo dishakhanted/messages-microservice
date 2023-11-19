@@ -46,7 +46,7 @@ class MessageDataService(BaseDataService):
     def get_database(self):
         return self.database
 
-    def get_messages(self, userID: int, messageID: int) -> list:
+    def get_messages(self, userID: int, messageThreadID: int, messageID: int, messageContents: int, offset: int, limit: int) -> list:
         """
 
         Returns students with properties matching the values. Only non-None parameters apply to
@@ -58,15 +58,29 @@ class MessageDataService(BaseDataService):
         :return: A list of matching JSON records.
         """
         result = []
-        users = {}
-        if userID == None:
-            users = self.database.fetchallquery("""SELECT * FROM "userMessages";""")
-        elif messageID == None:
-            users = self.database.fetchallquery(f"""SELECT * FROM "userMessages" WHERE "userID"='{userID}';""")
-        else: 
-            users = self.database.fetchallquery(f"""SELECT * FROM "userMessages" WHERE "userID"='{userID}'AND "messageID"='{messageID}';""")
-
-        for s in users:
+        messages = {}
+        query = """SELECT * FROM "userMessages" """
+        if (userID == None and messageThreadID == None and messageID == None and messageContents == None and offset == None and limit == None):
+            query += """;"""
+        else:
+            query += """ WHERE 1=1"""
+            if (userID != None):
+                query += """ AND "userID"="""+str(userID)
+            if (messageThreadID != None):
+                query += """ AND "messageID"='"""+str(messageThreadID)+"""'"""
+            if (messageID != None):
+                query += """ AND "userMessageID"='"""+str(messageID)+"""'"""
+            if (messageContents != None):
+                query += """ AND "messageContents" LIKE '%"""+str(messageContents)+"""%'"""
+            if (limit != None):
+                if (offset != None):
+                    query += """ LIMIT """+str(limit) + """ OFFSET """+str(offset)
+                else:
+                    query += """ LIMIT """+str(limit)
+            query += """;"""
+        
+        messages = self.database.fetchallquery(query)
+        for s in messages:
             s['creationDT'] = s['creationDT'].strftime("%m/%d/%Y, %H:%M:%S")
             result.append(s)
 

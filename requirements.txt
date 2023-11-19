@@ -3,3 +3,6 @@ uvicorn
 gunicorn
 psycopg2-binary
 jinja2
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart

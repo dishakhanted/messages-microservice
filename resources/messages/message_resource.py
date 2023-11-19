@@ -29,9 +29,9 @@ class MessageResource(BaseResource):
         rsp = MessageRspModel(**s, links=links)
         return rsp
 
-    def get_messages(self, userID: int, messageID: int) -> List[MessageRspModel]:
+    def get_messages(self, userID: int, messageThreadID: int, messageID: int, messageContents: int, offset: int, limit: int) -> List[MessageRspModel]:
 
-        result = self.data_service.get_messages(userID, messageID)
+        result = self.data_service.get_messages(userID, messageThreadID, messageID, messageContents, offset, limit)
         final_result = []
 
         for s in result:

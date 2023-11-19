@@ -40,7 +40,7 @@ class UserDataService(BaseDataService):
     def get_database(self):
         return self.database
 
-    def get_users(self, userID: int, firstName: str, lastName: str, isAdmin: bool) -> list:
+    def get_users(self, userID: int, firstName: str, lastName: str, isAdmin: bool, offset: int, limit: int) -> list:
         """
 
         Returns users with properties matching the values. Only non-None parameters apply to
@@ -52,7 +52,7 @@ class UserDataService(BaseDataService):
         result = []
         users = {}
         query = """SELECT * FROM "messageUsers" """
-        if (userID == None and firstName == None and lastName == None and isAdmin == None):
+        if (userID == None and firstName == None and lastName == None and isAdmin == None and offset == None and limit == None):
             query += """;"""
         else:
             query += """ WHERE 1=1"""
@@ -64,6 +64,11 @@ class UserDataService(BaseDataService):
                 query += """ AND "lastName"='"""+str(lastName)+"""'"""
             if (isAdmin != None):
                 query += """ AND "isAdmin"="""+str(isAdmin)
+            if (limit != None):
+                if (offset != None):
+                    query += """ LIMIT """+str(limit) + """ OFFSET """+str(offset)
+                else:
+                    query += """ LIMIT """+str(limit)
             query += """;"""
         
         users = self.database.fetchallquery(query)

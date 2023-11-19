@@ -10,11 +10,19 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from typing import List, Union
 
+from datetime import datetime, timedelta
+from typing import Annotated
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+
+
 # I like to launch directly and not use the standard FastAPI startup process.
 # So, I include uvicorn
 import uvicorn
 
-from resources.database.database_data_service import DatabaseDataService
 from resources.messages.message_data_service import MessageDataService
 from resources.messages.message_resource import MessageRspModel, MessageModel, MessageResource
 from resources.users.users_data_service import UserDataService
@@ -22,26 +30,45 @@ from resources.users.users_resource import UserResource
 from resources.users.users_models import UserRspModel, UserModel
 from pydantic import BaseModel
 
+SECRET_KEY = "4f6c5db6278a552eee164342cdf6880921c21676560313d2d8a67aeadd37768a"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-
-# ******************************
-#
-# DFF TODO Show the class how to do this with a service factory instead of hard code.
-
+LOCAL = True
 
 def get_data_service():
-
-    database = {
-        "db_name" : "message",
-        "db_host" : '/cloudsql/{}'.format("messages-microservice:us-east1:message-db"),
-        "db_user" : "message",
-        "db_pass" : "message",
-    }
+    database = {}
+    if LOCAL:
+        database = {
+            "db_name" : "message",
+            "db_host" : "localhost",
+            "db_user" : "message",
+            "db_pass" : "message",
+        }
+    else:
+        database = {
+            "db_name" : "message",
+            "db_host" : '/cloudsql/{}'.format("messages-microservice:us-east1:message-db"),
+            "db_user" : "message",
+            "db_pass" : "message",
+        }
 
     ds = UserDataService(database)
     return ds
@@ -59,12 +86,21 @@ def get_user_resource():
 user_resource = get_user_resource()
 
 def get_message_resource():
-    database = {
-        "db_name" : "message",
-        "db_host" : '/cloudsql/{}'.format("messages-microservice:us-east1:message-db"),
-        "db_user" : "message",
-        "db_pass" : "message",
-    }
+    database = {}
+    if LOCAL:
+        database = {
+            "db_name" : "message",
+            "db_host" : "localhost",
+            "db_user" : "message",
+            "db_pass" : "message",
+        }
+    else:
+        database = {
+            "db_name" : "message",
+            "db_host" : '/cloudsql/{}'.format("messages-microservice:us-east1:message-db"),
+            "db_user" : "message",
+            "db_pass" : "message",
+        }
 
 
     ds = MessageDataService(database)
@@ -111,11 +147,11 @@ async def profile(request: Request, userID: int):
     return templates.TemplateResponse("profile.html", {"request": request, "userID": userID, "result": result})
 
 @app.get("/api/users", response_model=List[UserRspModel])
-async def get_users(userID: int | None = None, firstName: str | None = None, lastName: str | None = None, isAdmin: bool | None = None):
+async def get_users(userID: int | None = None, firstName: str | None = None, lastName: str | None = None, isAdmin: bool | None = None, offset: int | None = None, limit: int | None = None):
     """
     Return all users.
     """
-    result = user_resource.get_users(userID, firstName, lastName, isAdmin)
+    result = user_resource.get_users(userID, firstName, lastName, isAdmin, offset, limit)
     return result
 
 @app.get("/api/users/{userID}", response_model=Union[List[UserRspModel], UserRspModel, None])
@@ -125,7 +161,7 @@ async def get_student(userID: int):
 
     - **userID**: User's userID
     """
-    result = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None)
+    result = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None, offset=None, limit=None)
     if len(result) == 1:
         result = result[0]
     else:
@@ -146,11 +182,11 @@ def add_users(request: UserModel):
     return result
 
 @app.get("/api/messages", response_model=List[MessageRspModel])
-async def get_messages():
+async def get_messages(userID: int | None = None, messageThreadID: int | None = None, messageID: int | None = None, messageContents: int | None = None, offset: int | None = None, limit: int | None = None):
     """
     Returns all messages.
     """
-    result = message_resource.get_messages(userID=None, messageID=None)
+    result = message_resource.get_messages(userID, messageThreadID, messageID, messageContents, offset, limit)
     return result
 
 @app.get("/api/messages/{userID}", response_model=Union[List[MessageRspModel], MessageRspModel, None])
@@ -160,7 +196,7 @@ async def get_messages(userID: int):
 
     - **userID**: User's userID
     """
-    result = message_resource.get_messages(userID, None)
+    result = message_resource.get_messages(userID, messageThreadID=None, messageID=None, messageContents=None, offset=None, limit=None)
 
     return result
 
@@ -172,7 +208,7 @@ async def get_messages(userID: int, messageThreadID: int):
     - **userID**: User's userID
     - **messageThreadID**: ThreadID
     """
-    result = message_resource.get_messages(userID, messageThreadID)
+    result = message_resource.get_messages(userID, messageThreadID, messageID=None, messageContents=None, offset=None, limit=None)
 
     return result
 
@@ -211,6 +247,87 @@ def new_message(request: MessageModel):
         raise HTTPException(status_code=404, detail="Not found")
     
     return result
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+
+def get_user(userID):
+    user = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None, offset=None, limit=None)
+    if len(user) == 1:
+        user = user[0]
+        return user
+    else:
+        return None
+
+
+def authenticate_user(userID, password = None):
+    user = get_user(userID)
+    if user:
+        return user
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        userID: str = payload.get("sub")
+        if userID is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = get_user(userID=userID)
+    if user is None:
+        raise credentials_exception
+    return user
+
+@app.get("/users/me/", response_model=Union[List[UserRspModel], UserRspModel, None])
+async def read_users_me(
+    current_user: Annotated[UserRspModel, Depends(get_current_user)]
+):
+    return current_user
+
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+):
+    user = authenticate_user(form_data.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.userID), "fn": user.firstName, "ln": user.lastName}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 
