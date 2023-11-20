@@ -138,7 +138,7 @@ async def api():
 
 @app.get("/profile/{userID}", response_class=HTMLResponse)
 async def profile(request: Request, userID: int):
-    result = user_resource.get_users(userID)
+    result = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None, offset=None, limit=None)
     if len(result) == 1:
         result = result[0]
     else:
