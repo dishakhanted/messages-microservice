@@ -32,7 +32,8 @@ from pydantic import BaseModel
 
 SECRET_KEY = "4f6c5db6278a552eee164342cdf6880921c21676560313d2d8a67aeadd37768a"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60000
+LOCAL = False
 
 class Token(BaseModel):
     access_token: str
@@ -51,7 +52,6 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-LOCAL = True
 
 def get_data_service():
     database = {}
@@ -146,108 +146,6 @@ async def profile(request: Request, userID: int):
     
     return templates.TemplateResponse("profile.html", {"request": request, "userID": userID, "result": result})
 
-@app.get("/api/users", response_model=List[UserRspModel])
-async def get_users(userID: int | None = None, firstName: str | None = None, lastName: str | None = None, isAdmin: bool | None = None, offset: int | None = None, limit: int | None = None):
-    """
-    Return all users.
-    """
-    result = user_resource.get_users(userID, firstName, lastName, isAdmin, offset, limit)
-    return result
-
-@app.get("/api/users/{userID}", response_model=Union[List[UserRspModel], UserRspModel, None])
-async def get_student(userID: int):
-    """
-    Return a user based on userID.
-
-    - **userID**: User's userID
-    """
-    result = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None, offset=None, limit=None)
-    if len(result) == 1:
-        result = result[0]
-    else:
-        raise HTTPException(status_code=404, detail="Not found")
-
-    return result
-
-
-@app.post("/api/users/newUser")
-def add_users(request: UserModel):
-    
-    result = user_resource.add_user(request)
-    if len(result) == 1:
-        result = result[0]
-    else:
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    return result
-
-@app.get("/api/messages", response_model=List[MessageRspModel])
-async def get_messages(userID: int | None = None, messageThreadID: int | None = None, messageID: int | None = None, messageContents: int | None = None, offset: int | None = None, limit: int | None = None):
-    """
-    Returns all messages.
-    """
-    result = message_resource.get_messages(userID, messageThreadID, messageID, messageContents, offset, limit)
-    return result
-
-@app.get("/api/messages/{userID}", response_model=Union[List[MessageRspModel], MessageRspModel, None])
-async def get_messages(userID: int):
-    """
-    Return messages based on userID.
-
-    - **userID**: User's userID
-    """
-    result = message_resource.get_messages(userID, messageThreadID=None, messageID=None, messageContents=None, offset=None, limit=None)
-
-    return result
-
-@app.get("/api/messages/{userID}/{messageThreadID}", response_model=Union[List[MessageRspModel], MessageRspModel, None])
-async def get_messages(userID: int, messageThreadID: int):
-    """
-    Return messages based on userID and message Thread ID.
-
-    - **userID**: User's userID
-    - **messageThreadID**: ThreadID
-    """
-    result = message_resource.get_messages(userID, messageThreadID, messageID=None, messageContents=None, offset=None, limit=None)
-
-    return result
-
-@app.post("/api/messages/newMessage")
-def new_message(request: MessageModel):
-    
-    result = None
-    result = message_resource.add_message(request)
-    if len(result) == 1:
-        result = result[0]
-    else:
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    return result
-
-@app.put("/api/messages/newMessage")
-def new_message(request: MessageModel):
-    
-    result = None
-    result = message_resource.put_message(request)
-    if len(result) == 1:
-        result = result[0]
-    else:
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    return result
-
-@app.delete("/api/messages/newMessage")
-def new_message(request: MessageModel):
-    
-    result = None
-    result = message_resource.delete_message(request)
-    if len(result) == 1:
-        result = result[0]
-    else:
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    return result
-
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -328,6 +226,132 @@ async def login_for_access_token(
         data={"sub": str(user.userID), "fn": user.firstName, "ln": user.lastName}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/api/users", response_model=List[UserRspModel])
+async def get_users(userID: int | None = None, firstName: str | None = None, lastName: str | None = None, isAdmin: bool | None = None, offset: int | None = None, limit: int | None = None):
+    """
+    Return all users.
+    """
+    result = user_resource.get_users(userID, firstName, lastName, isAdmin, offset, limit)
+    return result
+
+@app.get("/api/users/{userID}", response_model=Union[List[UserRspModel], UserRspModel, None])
+async def get_student(userID: int):
+    """
+    Return a user based on userID.
+
+    - **userID**: User's userID
+    """
+    result = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None, offset=None, limit=None)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    return result
+
+
+@app.post("/api/users/newUser")
+def add_users(request: UserModel):
+    
+    result = user_resource.add_user(request)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return result
+
+@app.get("/api/messages", response_model=List[MessageRspModel])
+async def get_messages(userID: int | None = None, messageThreadID: int | None = None, messageID: int | None = None, messageContents: int | None = None, offset: int | None = None, limit: int | None = None):
+    """
+    Returns all messages.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    result = message_resource.get_messages(userID, messageThreadID, messageID, messageContents, offset, limit)
+    return result
+
+@app.get("/api/messages/{userID}", response_model=Union[List[MessageRspModel], MessageRspModel, None])
+async def get_messages(userID: int, current_user: Annotated[UserRspModel, Depends(get_current_user)]):
+    """
+    Return messages based on userID.
+
+    - **userID**: User's userID
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    if not current_user.isAdmin and current_user.userID != userID:
+        raise credentials_exception
+    
+    result = message_resource.get_messages(userID, messageThreadID=None, messageID=None, messageContents=None, offset=None, limit=None)
+
+    return result
+
+@app.get("/api/messages/{userID}/{messageThreadID}", response_model=Union[List[MessageRspModel], MessageRspModel, None])
+async def get_messages(userID: int, messageThreadID: int, current_user: Annotated[UserRspModel, Depends(get_current_user)]):
+    """
+    Return messages based on userID and message Thread ID.
+
+    - **userID**: User's userID
+    - **messageThreadID**: ThreadID
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    if not current_user.isAdmin and current_user.userID != userID:
+        raise credentials_exception
+    
+    result = message_resource.get_messages(userID, messageThreadID, messageID=None, messageContents=None, offset=None, limit=None)
+
+    return result
+
+@app.post("/api/messages/newMessage")
+def new_message(request: MessageModel):
+    
+    result = None
+    result = message_resource.add_message(request)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return result
+
+@app.put("/api/messages/newMessage")
+def new_message(request: MessageModel):
+    
+    result = None
+    result = message_resource.put_message(request)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return result
+
+@app.delete("/api/messages/newMessage")
+def new_message(request: MessageModel):
+    
+    result = None
+    result = message_resource.delete_message(request)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return result
 
 
 
