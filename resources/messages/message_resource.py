@@ -35,8 +35,9 @@ class MessageResource(BaseResource):
         final_result = []
 
         for s in result:
-            m = self._generate_links(s)
-            final_result.append(m)
+            #m = self._generate_links(s)
+            #final_result.append(m)
+            final_result.append(s)
 
         return final_result
 

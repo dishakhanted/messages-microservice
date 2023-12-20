@@ -10,6 +10,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from typing import List, Union
 from fastapi import Depends, FastAPI, HTTPException
+import strawberry
+from strawberry.asgi import GraphQL
 
 
 # I like to launch directly and not use the standard FastAPI startup process.
@@ -25,7 +27,47 @@ from pydantic import BaseModel
 
 LOCAL = False
 
+import strawberry
+from pydantic import BaseModel
+
+@strawberry.type
+class User:
+    userID: int
+    firstName: str
+    lastName: str
+    isAdmin: bool
+
+
+@strawberry.type
+class Message:
+    userMessageID: int
+    userID: int
+    messageID: int
+    messageContents: str
+    creationDT: str
+
+@strawberry.type
+class Query:
+    @strawberry.field
+    def user(self, userID: int) -> User | None:
+        result = user_resource.get_users(userID, firstName=None, lastName=None, isAdmin=None, offset=None, limit=None)
+        if result is not []:
+            return User(**result[0])
+        else:
+            return None
+    @strawberry.field
+    def messages(self, user_id: int | None = None, message_thread_id: int | None = None, message_id: int | None = None, message_contents: int | None = None, offset: int | None = None, limit: int | None = None) -> list[Message]:
+        result = message_resource.get_messages(user_id, message_thread_id, message_id, message_contents, offset, limit)
+        print(result)
+        return [Message(**msg) for msg in result]
+    
+schema = strawberry.Schema(query=Query)
+    
+graphql_app = GraphQL(schema)
+
 app = FastAPI()
+app.add_route("/graphql", graphql_app)
+app.add_websocket_route("/graphql", graphql_app)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
