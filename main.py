@@ -56,8 +56,8 @@ class Query:
         else:
             return None
     @strawberry.field
-    def messages(self, user_id: int | None = None, message_thread_id: int | None = None, message_id: int | None = None, message_contents: int | None = None, offset: int | None = None, limit: int | None = None) -> list[Message]:
-        result = message_resource.get_messages(user_id, message_thread_id, message_id, message_contents, offset, limit)
+    def messages(userID: int | None = None, messageThreadID: int | None = None, messageID: int | None = None, messageContents: int | None = None, offset: int | None = None, limit: int | None = None) -> list[Message]:
+        result = message_resource.get_messages(userID, messageThreadID, messageID, messageContents, offset, limit)
         print(result)
         return [Message(**msg) for msg in result]
     
