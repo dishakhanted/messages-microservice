@@ -248,7 +248,7 @@ def new_message(request: MessageModel):
     return result
 
 @app.put("/api/messages/newMessage")
-def new_message(request: MessageModel):
+def put_message(request: MessageModel):
     
     result = None
     result = message_resource.put_message(request)
@@ -260,10 +260,21 @@ def new_message(request: MessageModel):
     return result
 
 @app.delete("/api/messages/newMessage")
-def new_message(request: MessageModel):
+def delete_message(request: MessageModel):
     
     result = None
     result = message_resource.delete_message(request)
+    if len(result) == 1:
+        result = result[0]
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return result
+
+@app.delete("/api/users/deleteUser")
+def delete_users(request: UserModel):
+    
+    result = user_resource.delete_user(request)
     if len(result) == 1:
         result = result[0]
     else:

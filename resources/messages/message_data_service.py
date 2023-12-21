@@ -58,28 +58,24 @@ class MessageDataService(BaseDataService):
         :return: A list of matching JSON records.
         """
         result = []
-        messages = {}
-        query = """SELECT * FROM "userMessages" """
-        if (userID == None and messageThreadID == None and messageID == None and messageContents == None and offset == None and limit == None):
-            query += """;"""
-        else:
-            query += """ WHERE 1=1"""
-            if (userID != None):
-                query += """ AND "userID"="""+str(userID)
-            if (messageThreadID != None):
-                query += """ AND "messageID"='"""+str(messageThreadID)+"""'"""
-            if (messageID != None):
-                query += """ AND "userMessageID"='"""+str(messageID)+"""'"""
-            if (messageContents != None):
-                query += """ AND "messageContents" LIKE '%"""+str(messageContents)+"""%'"""
-            if (limit != None):
-                if (offset != None):
-                    query += """ LIMIT """+str(limit) + """ OFFSET """+str(offset)
+
+        params = ["""\"userID\"""", """\"messageID\"""", """\"userMessageID\"""", """\"messageContents\"""", """\"offset\"""", """\"limit\""""]
+        values = [userID, messageThreadID, messageID, messageContents, offset, limit]
+
+        query = """SELECT * FROM \"userMessages\""""
+        conditions = []
+        for param, value in zip(params, values):
+            if value is not None:
+                if param == """\"messageContents\"""":
+                    conditions.append(f"{param} LIKE %s")
                 else:
-                    query += """ LIMIT """+str(limit)
-            query += """;"""
-        
-        messages = self.database.fetchallquery(query)
+                    conditions.append(f"{param} = %s")
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += ";"
+              
+        messages = self.database.fetchallquery(query, tuple(value for value in values if value is not None))
+
         for s in messages:
             s['creationDT'] = s['creationDT'].strftime("%m/%d/%Y, %H:%M:%S")
             result.append(s)
@@ -93,11 +89,9 @@ class MessageDataService(BaseDataService):
 
         :param request: POST request with message data.
         """
-        check_thread = f"""INSERT INTO "messageThread" ("messageID", "creationDT") VALUES ('{request.messageID}', CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING"""
-        self.database.execute_query(check_thread)
-        query = f"""INSERT INTO "userMessages"("userMessageID", "userID", "messageID", "messageContents", "creationDT") VALUES (DEFAULT, '{request.userID}', '{request.messageID}' , '{request.messageContents}', CURRENT_TIMESTAMP) RETURNING "messageID";"""
-        users = self.database.execute_query(query)
-        result = users.fetchone()
+        self.database.execute_query("INSERT INTO \"messageThread\" (\"messageID\", \"creationDT\") VALUES (%s, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING", (request.messageID,))
+        messages = self.database.execute_query("INSERT INTO \"userMessages\" (\"userMessageID\", \"userID\", \"messageID\", \"messageContents\", \"creationDT\") VALUES (DEFAULT, %s, %s, %s, CURRENT_TIMESTAMP) RETURNING \"messageID\"", (request.userID, request.messageID, request.messageContents))
+        result = messages.fetchone()
 
         return result
     
@@ -108,11 +102,9 @@ class MessageDataService(BaseDataService):
 
         :param request: POST request with message data.
         """
-        check_thread = f"""INSERT INTO "messageThread" ("messageID", "creationDT") VALUES ('{request.messageID}', CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING"""
-        self.database.execute_query(check_thread)
-        query = f"""INSERT INTO "userMessages"("userMessageID", "userID", "messageID", "messageContents", "creationDT") VALUES ('{request.userMessageID}', '{request.userID}', '{request.messageID}' , '{request.messageContents}', CURRENT_TIMESTAMP) ON CONFLICT ("userMessageID") DO UPDATE SET "messageContents"='{request.messageContents}', "creationDT"=CURRENT_TIMESTAMP RETURNING "messageID";"""
-        users = self.database.execute_query(query)
-        result = users.fetchone()
+        self.database.execute_query("INSERT INTO \"messageThread\" (\"messageID\", \"creationDT\") VALUES (%s, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING", (request.messageID,))
+        messages = self.database.execute_query("INSERT INTO \"userMessages\" (\"userMessageID\", \"userID\", \"messageID\", \"messageContents\", \"creationDT\") VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP) ON CONFLICT (\"userMessageID\") DO UPDATE SET \"messageContents\"=%s, \"creationDT\"=CURRENT_TIMESTAMP RETURNING \"messageID\"", (request.userMessageID, request.userID, request.messageID, request.messageContents, request.messageContents))
+        result = messages.fetchone()
 
         return result
     
@@ -123,9 +115,8 @@ class MessageDataService(BaseDataService):
 
         :param request: DELETE request with message ID.
         """
-        query = f"""DELETE FROM "userMessages" WHERE "userMessageID" = '{request.userMessageID}' RETURNING "messageID";"""
-        users = self.database.execute_query(query)
-        result = users.fetchone()
+        messages = self.database.execute_query("DELETE FROM \"userMessages\" WHERE \"userMessageID\" = %s RETURNING \"messageID\"", (request.userMessageID,))
+        result = messages.fetchone()
 
         return result
 

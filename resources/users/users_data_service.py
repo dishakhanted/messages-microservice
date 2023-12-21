@@ -51,27 +51,21 @@ class UserDataService(BaseDataService):
         """
         result = []
         users = {}
+        # Define a list of parameters and their values
+        params = ["""\"userID\"""", """\"firstName\"""", """\"lastName\"""", """\"isAdmin\"""", """\"offset\"""", """\"limit\""""]
+        values = [userID, firstName, lastName, isAdmin, offset, limit]
+
         query = """SELECT * FROM "messageUsers" """
-        if (userID == None and firstName == None and lastName == None and isAdmin == None and offset == None and limit == None):
-            query += """;"""
-        else:
-            query += """ WHERE 1=1"""
-            if (userID != None):
-                query += """ AND "userID"="""+str(userID)
-            if (firstName != None):
-                query += """ AND "firstName"='"""+str(firstName)+"""'"""
-            if (lastName != None):
-                query += """ AND "lastName"='"""+str(lastName)+"""'"""
-            if (isAdmin != None):
-                query += """ AND "isAdmin"="""+str(isAdmin)
-            if (limit != None):
-                if (offset != None):
-                    query += """ LIMIT """+str(limit) + """ OFFSET """+str(offset)
-                else:
-                    query += """ LIMIT """+str(limit)
-            query += """;"""
+        conditions = []
+        for param, value in zip(params, values):
+            if value is not None:
+                conditions.append(f"{param} = %s")
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += ";"
+
         
-        users = self.database.fetchallquery(query)
+        users = self.database.fetchallquery(query, tuple(value for value in values if value is not None))
         for s in users:
             result.append(s)
 
@@ -86,9 +80,20 @@ class UserDataService(BaseDataService):
         :param request: A dictionary of the UserModel
         :return: userID of the newly created user.
         """
-        query = f"""INSERT INTO "messageUsers"("userID", "firstName", "lastName", "isAdmin") VALUES (DEFAULT, '{request.firstName}' , '{request.lastName}', {request.isAdmin}) RETURNING "userID";"""
-        users = self.database.execute_query(query)
+    
+        users = self.database.execute_query("""INSERT INTO \"messageUsers\" (\"userID\", \"firstName\", \"lastName\", \"isAdmin\") VALUES (DEFAULT, %s, %s, %s) RETURNING \"userID\"""", (request.firstName, request.lastName, request.isAdmin))
         result = users.fetchone()
 
         return result
 
+    def delete_user(self, request: dict) -> list:
+        """
+
+        Deletes a message from a thread.
+
+        :param request: DELETE request with message ID.
+        """
+        users = self.database.execute_query("DELETE FROM \"messageUsers\" WHERE \"userID\" = %s RETURNING \"userID\"", (request.userID,))
+        result = users.fetchone()
+
+        return result

@@ -46,4 +46,9 @@ class UserResource(BaseResource):
         result = self.data_service.add_user(request)
 
         return result
+    
+    def delete_user(self, request: UserModel) -> List[UserRspModel]:
 
+        result = self.data_service.delete_user(request)
+
+        return result
